@@ -1,4 +1,6 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const cheerio = require('cheerio');
 const fs = require('fs').promises;
 const { createWriteStream } = require('fs');
@@ -23,24 +25,8 @@ console.error = (message, error) => {
 };
 
 
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
 
-async function isScrapingAllowed(url) {
-  try {
-    const robotsUrl = new URL('/robots.txt', url).href;
-    const response = await fetch(robotsUrl);
-    if (response.ok) {
-      const robotsTxt = await response.text();
-      // A simple check to see if the User-Agent is disallowed.
-      // This is a basic implementation and might not cover all cases.
-      return !robotsTxt.includes('Disallow: /');
-    }
-  } catch (error) {
-    // If we can't fetch or parse robots.txt, we assume scraping is allowed.
-    console.warn(`Could not fetch or parse robots.txt for ${url}. Proceeding with caution.`);
-  }
-  return true;
-}
 
 function delay(time) {
   return new Promise(function(resolve) {
@@ -53,16 +39,13 @@ async function scrapeLinkedInCompany(url, browser) {
   await page.setUserAgent(USER_AGENT);
 
   try {
-    if (!await isScrapingAllowed(url)) {
-      console.warn(`Scraping disallowed by robots.txt for ${url}. Skipping.`);
-      return { url, status: 'Skipped', error: 'Scraping disallowed by robots.txt' };
-    }
 
     console.log(`Scraping ${url}...`);
+    const aboutUrl = url.endsWith('/') ? `${url}about/` : `${url}/about/`;
     let retries = 3;
     while (retries > 0) {
       try {
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.goto(aboutUrl, { waitUntil: 'networkidle2' });
         break;
       } catch (error) {
         console.warn(`Error loading page, retrying... (${retries} retries left)`);
@@ -72,25 +55,34 @@ async function scrapeLinkedInCompany(url, browser) {
         }
       }
     }
-    await delay(Math.random() * 3000 + 2000); // Random delay between 2-5 seconds
 
-    // Navigate to the "About" page
-    const aboutUrl = `${url.replace(/\/$/, '')}/about/`;
-    await page.goto(aboutUrl, { waitUntil: 'networkidle2' });
-    await delay(Math.random() * 3000 + 2000); // Random delay between 2-5 seconds
+    const pageTitle = await page.title();
+    if (pageTitle.includes('Sign Up | LinkedIn')) {
+      console.warn(`Skipping ${url} due to authentication wall.`);
+      return { url, status: 'Skipped', error: 'Authentication wall' };
+    }
+    await delay(Math.random() * 5000 + 5000); // Random delay between 5-10 seconds
 
-    // Click "Show more" button for "About Us"
-    const showMoreButtonSelector = 'button[data-control-name="about_show_more"]';
-    try {
-      if (await page.$(showMoreButtonSelector) !== null) {
-        await page.click(showMoreButtonSelector);
+    // Click "Show more" button if it exists
+    const showMoreButtonSelector = '.org-about-us-organization-description__show-more-button';
+    if (await page.$(showMoreButtonSelector) !== null) {
+      try {
+        const showMoreButton = await page.$(showMoreButtonSelector);
+        const rect = await page.evaluate(el => {
+          const { top, left, width, height } = el.getBoundingClientRect();
+          return { top, left, width, height };
+        }, showMoreButton);
+
+        await page.mouse.move(rect.left + rect.width / 2, rect.top + rect.height / 2, { steps: 10 });
+        await page.mouse.click(rect.left + rect.width / 2, rect.top + rect.height / 2);
         await page.waitForTimeout(1000); // Wait for content to load
+      } catch (error) {
+        console.warn('Could not click "Show more" button.');
       }
-    } catch (error) {
-      console.warn('Could not click "Show more" button for About Us.');
     }
 
     const content = await page.content();
+    console.log(content);
     const $ = cheerio.load(content);
 
     let jsonData = {};
@@ -104,32 +96,26 @@ async function scrapeLinkedInCompany(url, browser) {
       }
     });
 
-    // Click "Show all locations" button if it exists
-    const showAllLocationsButtonSelector = 'button[data-control-name="about_show_all_locations"]';
-    try {
-      if (await page.$(showAllLocationsButtonSelector) !== null) {
-        await page.click(showAllLocationsButtonSelector);
-        await page.waitForTimeout(1000); // Wait for content to load
-      }
-    } catch (error) {
-      console.warn('Could not click "Show all locations" button.');
-    }
-
     const companyData = {
       url,
       status: 'Success',
       logoUrl: jsonData.logo || $('.org-top-card-primary-content__logo-container img').attr('src'),
       bannerUrl: jsonData.image ? jsonData.image.contentUrl : $('.org-top-card-primary-content__banner-container img').attr('src'),
-      aboutUs: jsonData.description || $('p.org-about-us-organization-description__text').text().trim(),
-      website: jsonData.url || $('dt:contains("Website")').next('dd').find('a').attr('href'),
+      aboutUs: $('.org-about-us-organization-description__text-free-viewer').text().trim(),
+      website: $('dt:contains("Website")').next('dd').find('a').attr('href'),
       verified: $('.org-page-verified-badge').length > 0,
-      industry: jsonData.industry || $('dt:contains("Industry")').next('dd').text().trim(),
-      companySize: jsonData.numberOfEmployees ? `${jsonData.numberOfEmployees.minValue}-${jsonData.numberOfEmployees.maxValue} employees` : $('dt:contains("Company size")').next('dd').text().trim(),
-      headquarters: jsonData.address ? `${jsonData.address.streetAddress}, ${jsonData.address.addressLocality}, ${jsonData.address.addressRegion}` : $('dt:contains("Headquarters")').next('dd').text().trim(),
-      founded: jsonData.foundingDate || $('dt:contains("Founded")').next('dd').text().trim(),
-      locations: $('.org-locations-module__location-item').map((i, el) => $(el).find('p').text().trim()).get(),
-      specialties: jsonData.keywords ? jsonData.keywords.split(', ') : ($('dt:contains("Specialties")').next('dd').text().trim().split(', ') || []),
+      industry: $('dt:contains("Industry")').next('dd').text().trim(),
+      companySize: $('dt:contains("Company size")').next('dd').text().trim(),
+      headquarters: $('dt:contains("Headquarters")').next('dd').text().trim(),
+      founded: $('dt:contains("Founded")').next('dd').text().trim(),
+      locations: [], // This will be populated later
+      specialties: $('dt:contains("Specialties")').next('dd').text().trim().split(', '),
     };
+
+    // Extract locations
+    $('dt:contains("Locations")').next('dd').find('li').each((i, el) => {
+      companyData.locations.push($(el).text().trim());
+    });
 
     console.log(`Successfully scraped ${url}`);
     return companyData;

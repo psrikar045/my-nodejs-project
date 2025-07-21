@@ -1,12 +1,21 @@
 [
   {
     "url": "https://www.linkedin.com/company/microsoft/",
-    "status": "Skipped",
-    "error": "Scraping disallowed by robots.txt"
+    "status": "Success",
+    "aboutUs": "",
+    "verified": false,
+    "industry": "",
+    "companySize": "",
+    "headquarters": "",
+    "founded": "",
+    "locations": [],
+    "specialties": [
+      ""
+    ]
   },
   {
     "url": "https://www.linkedin.com/company/google/",
     "status": "Skipped",
-    "error": "Scraping disallowed by robots.txt"
+    "error": "Authentication wall"
   }
 ]
