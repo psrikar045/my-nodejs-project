@@ -74,11 +74,20 @@ async function scrapeLinkedInCompany(url, browser) {
     }
     await delay(Math.random() * 3000 + 2000); // Random delay between 2-5 seconds
 
-    // Click "Show more" button if it exists
-    const showMoreButtonSelector = '.org-about-us-organization-description__show-more-button';
-    if (await page.$(showMoreButtonSelector) !== null) {
-      await page.click(showMoreButtonSelector);
-      await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    // Navigate to the "About" page
+    const aboutUrl = `${url.replace(/\/$/, '')}/about/`;
+    await page.goto(aboutUrl, { waitUntil: 'networkidle2' });
+    await delay(Math.random() * 3000 + 2000); // Random delay between 2-5 seconds
+
+    // Click "Show more" button for "About Us"
+    const showMoreButtonSelector = 'button[data-control-name="about_show_more"]';
+    try {
+      if (await page.$(showMoreButtonSelector) !== null) {
+        await page.click(showMoreButtonSelector);
+        await page.waitForTimeout(1000); // Wait for content to load
+      }
+    } catch (error) {
+      console.warn('Could not click "Show more" button for About Us.');
     }
 
     const content = await page.content();
@@ -95,19 +104,30 @@ async function scrapeLinkedInCompany(url, browser) {
       }
     });
 
+    // Click "Show all locations" button if it exists
+    const showAllLocationsButtonSelector = 'button[data-control-name="about_show_all_locations"]';
+    try {
+      if (await page.$(showAllLocationsButtonSelector) !== null) {
+        await page.click(showAllLocationsButtonSelector);
+        await page.waitForTimeout(1000); // Wait for content to load
+      }
+    } catch (error) {
+      console.warn('Could not click "Show all locations" button.');
+    }
+
     const companyData = {
       url,
       status: 'Success',
-      logoUrl: jsonData.logo || $('.ember-view.org-top-card-primary-content__logo-container img').attr('src'),
-      bannerUrl: jsonData.image ? jsonData.image.contentUrl : $('.ember-view.org-top-card-primary-content__banner-container img').attr('src'),
-      aboutUs: jsonData.description || $('.org-about-us-organization-description__text-free-viewer').text().trim(),
+      logoUrl: jsonData.logo || $('.org-top-card-primary-content__logo-container img').attr('src'),
+      bannerUrl: jsonData.image ? jsonData.image.contentUrl : $('.org-top-card-primary-content__banner-container img').attr('src'),
+      aboutUs: jsonData.description || $('p.org-about-us-organization-description__text').text().trim(),
       website: jsonData.url || $('dt:contains("Website")').next('dd').find('a').attr('href'),
       verified: $('.org-page-verified-badge').length > 0,
       industry: jsonData.industry || $('dt:contains("Industry")').next('dd').text().trim(),
       companySize: jsonData.numberOfEmployees ? `${jsonData.numberOfEmployees.minValue}-${jsonData.numberOfEmployees.maxValue} employees` : $('dt:contains("Company size")').next('dd').text().trim(),
       headquarters: jsonData.address ? `${jsonData.address.streetAddress}, ${jsonData.address.addressLocality}, ${jsonData.address.addressRegion}` : $('dt:contains("Headquarters")').next('dd').text().trim(),
       founded: jsonData.foundingDate || $('dt:contains("Founded")').next('dd').text().trim(),
-      locations: jsonData.location ? jsonData.location.map(loc => loc.address.addressLocality) : [],
+      locations: $('.org-locations-module__location-item').map((i, el) => $(el).find('p').text().trim()).get(),
       specialties: jsonData.keywords ? jsonData.keywords.split(', ') : ($('dt:contains("Specialties")').next('dd').text().trim().split(', ') || []),
     };
 
