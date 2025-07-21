@@ -9136,3 +9136,13 @@ Join us in congratulating Ravi on this significant appointment! <a class="link" 
 2025-07-21T15:13:15.960Z - INFO: Successfully extracted "locations" from HTML.
 2025-07-21T15:13:15.960Z - INFO: Successfully scraped https://www.linkedin.com/company/google/
 2025-07-21T15:13:16.000Z - INFO: Successfully saved data to output.json
+2025-07-21T15:29:21.450Z - INFO: Scraping https://www.linkedin.com/company/google/...
+2025-07-21T15:29:29.463Z - INFO: Could not find "aboutUs" in JSON-LD, attempting to scrape from HTML.
+2025-07-21T15:29:29.466Z - INFO: Found "About" tab, clicking...
+2025-07-21T15:29:59.504Z - INFO: No navigation after clicking "About" tab, proceeding...
+2025-07-21T15:29:59.509Z - INFO: Successfully extracted "aboutUs" from HTML.
+2025-07-21T15:30:04.513Z - INFO: Could not find "About us" section for "founded" scraping.
+2025-07-21T15:30:04.513Z - INFO: Could not find "locations" in JSON-LD, attempting to scrape from HTML.
+2025-07-21T15:30:04.519Z - INFO: Successfully extracted "locations" from HTML.
+2025-07-21T15:30:04.520Z - INFO: Successfully scraped https://www.linkedin.com/company/google/
+2025-07-21T15:30:04.569Z - INFO: Successfully saved data to output.json
