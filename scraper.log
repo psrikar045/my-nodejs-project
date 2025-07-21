@@ -1,3 +1,6 @@
 2025-07-21T11:39:48.455Z - WARN: Scraping disallowed by robots.txt for https://www.linkedin.com/company/microsoft/. Skipping.
 2025-07-21T11:39:48.698Z - WARN: Scraping disallowed by robots.txt for https://www.linkedin.com/company/google/. Skipping.
 2025-07-21T11:39:48.717Z - INFO: Successfully saved data to output.json
+2025-07-21T12:01:28.825Z - WARN: Scraping disallowed by robots.txt for https://www.linkedin.com/company/microsoft/. Skipping.
+2025-07-21T12:01:29.007Z - WARN: Scraping disallowed by robots.txt for https://www.linkedin.com/company/google/. Skipping.
+2025-07-21T12:01:29.022Z - INFO: Successfully saved data to output.json
