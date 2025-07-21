@@ -2,7 +2,7 @@
 
 ## Description
 
-A Node.js script that scrapes company data from LinkedIn public company profile pages. It uses Puppeteer for browser automation and Cheerio for HTML parsing. This script is designed to be robust and to extract a comprehensive set of data points from company profiles, with a focus on accurately extracting the "About Us", "Founded", and "Locations" fields.
+A Node.js script that scrapes company data from LinkedIn public company profile pages. It uses Puppeteer for browser automation and Cheerio for HTML parsing. This script is designed to be robust and to extract a comprehensive set of data points from company profiles.
 
 ## Usage
 
@@ -88,5 +88,4 @@ https://www.linkedin.com/company/google/
 *   **Changes in LinkedIn's Website Structure:** LinkedIn frequently updates its website. If the script stops working, it's likely due to changes in the HTML structure. You may need to update the Cheerio selectors in `scrapeLinkedIn.js` to match the new structure. You can do this by inspecting the elements in your browser's developer tools.
 *   **Rate Limiting and Bot Detection:** If you scrape too many pages in a short period, LinkedIn may temporarily block your IP address. The script includes delays to minimize this risk, but if you encounter issues, try increasing the delay or running the script less frequently. For more advanced scenarios, consider using a proxy service.
 *   **Missing or Incomplete Data:** Some company profiles may not have all the data points that the script tries to extract. The script is designed to handle this gracefully, but you may see `null` or empty values in the output.
-*   **`aboutUs`, `founded`, and `locations` fields:** These fields are particularly tricky to scrape due to the dynamic nature of LinkedIn's pages. If you are having trouble with these fields, make sure the script is correctly navigating to the "About" page and clicking the "Show more" buttons. You can use headful mode (`--headful`) to visually inspect the scraping process.
 *   **Debugging with Headful Mode:** If you are having trouble with a specific page, running the script in headful mode (`--headful`) can help you see what's happening in the browser and identify any issues with the page loading or selectors.
