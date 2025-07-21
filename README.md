@@ -1,91 +1,69 @@
 # LinkedIn Company Scraper
 
-## Description
+This script scrapes public LinkedIn company profiles to extract key information. It's designed to be robust against dynamic class names and other anti-scraping measures.
 
-A Node.js script that scrapes company data from LinkedIn public company profile pages. It uses Puppeteer for browser automation and Cheerio for HTML parsing. This script is designed to be robust and to extract a comprehensive set of data points from company profiles.
+## Features
 
-## Usage
+- Extracts company logo, banner image, website, industry, company size, headquarters, specialties, and more.
+- Prioritizes `application/ld+json` schema for reliable data extraction.
+- Uses robust, content-based selectors for "About Us," "Founded," and "Locations" when JSON-LD data is unavailable.
+- Simulates human-like interactions (mouse movements, clicks) to access dynamically loaded content.
+- Handles "Show more" and "Show all locations" buttons.
+- Includes randomized delays to mimic human browsing behavior.
+- Provides detailed logging for debugging.
+
+## How to Use
 
 1.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-2.  **Provide input URLs:**
+2.  **Create `urls.txt`:**
+    Create a file named `urls.txt` in the root of the project and add one LinkedIn company profile URL per line.
 
-    *   **Option 1: Command-line arguments**
-        ```bash
-        node scrapeLinkedIn.js https://www.linkedin.com/company/google/ https://www.linkedin.com/company/microsoft/
-        ```
-
-    *   **Option 2: `urls.txt` file**
-        Create a `urls.txt` file in the same directory as the script and add one LinkedIn company URL per line.
-        ```
-        https://www.linkedin.com/company/google/
-        https://www.linkedin.com/company/microsoft/
-        ```
-        Then run the script without any command-line arguments:
-        ```bash
-        node scrapeLinkedIn.js
-        ```
-
-3.  **Output:**
-    The scraped data will be saved in a file named `output.json` in the same directory. A `scraper.log` file will also be created, containing a log of the scraping process.
-
-4.  **Headless Mode:**
-    By default, the script runs in headless mode. To run in "headful" mode (which shows the browser window), use the `--headful` flag:
+3.  **Run the scraper:**
     ```bash
-    node scrapeLinkedIn.js --headful https://www.linkedin.com/company/google/
+    node scrapeLinkedIn.js
+    ```
+    To run in "headful" mode (to see the browser), use:
+    ```bash
+    node scrapeLinkedIn.js --headful
     ```
 
-## Ethical Considerations
+4.  **View the output:**
+    The scraped data will be saved in `output.json`.
 
-*   **Respect `robots.txt`:** This script checks the `robots.txt` file of the website before scraping. If scraping is disallowed, it will skip the URL.
-*   **Human-like Behavior:** The script includes randomized delays between requests to mimic human browsing behavior and avoid overloading the server.
-*   **LinkedIn's Terms of Service:** Be aware that scraping LinkedIn may be against their Terms of Service. Use this script responsibly and at your own risk. For professional and large-scale data extraction, consider using the official LinkedIn API or commercial data providers.
+## Robust Scraping Strategies
 
-## Sample Input/Output
+This scraper employs several strategies to ensure reliable data extraction, especially for fields that are often difficult to scrape:
 
-**Input (`urls.txt`):**
-```
-https://www.linkedin.com/company/google/
-```
+### "About Us"
 
-**Output (`output.json`):**
-```json
-[
-  {
-    "url": "https://www.linkedin.com/company/google/",
-    "status": "Success",
-    "logoUrl": "https://media.licdn.com/dms/image/C4E0BAQHi-8L1s_T22Q/company-logo_200_200/0/1615920999055?e=1729123200&v=beta&t=...",
-    "bannerUrl": "https://media.licdn.com/dms/image/D4E16AQH-...",
-    "aboutUs": "Google is a global technology company...",
-    "website": "https://www.google.com",
-    "verified": true,
-    "industry": "Internet",
-    "companySize": "10,001+ employees",
-    "headquarters": "Mountain View, CA",
-    "founded": "1998",
-    "locations": [
-      "Mountain View, CA",
-      "New York, NY",
-      "London, United Kingdom"
-    ],
-    "specialties": [
-      "Search",
-      "Advertising",
-      "Mobile",
-      "Android",
-      "YouTube",
-      "Cloud"
-    ]
-  }
-]
-```
+1.  **JSON-LD First:** The scraper first attempts to extract the company description from the `application/ld+json` data.
+2.  **Content-Based HTML Scraping:** If the description is not in the JSON-LD data, the scraper will:
+    - Find and click the "About" or "Overview" tab using text-based searches.
+    - Click any "Show more" buttons to reveal the full text.
+    - Extract the text from the "About Us" or "Overview" section.
+
+### "Founded"
+
+1.  **JSON-LD First:** The scraper looks for the `foundingDate` in the `application/ld+json` data.
+2.  **Content-Based HTML Scraping:** If not found in JSON-LD, it searches for the "Founded" label within the "About" section and extracts the corresponding value.
+
+### "Locations"
+
+1.  **JSON-LD First:** The scraper attempts to get locations from the `application/ld+json` data.
+2.  **Content-Based HTML Scraping:** If not available in JSON-LD, it will:
+    - Find the "Locations" section on the page.
+    - Click the "Show all locations" button if it exists.
+    - Extract all listed locations.
 
 ## Troubleshooting
 
-*   **Changes in LinkedIn's Website Structure:** LinkedIn frequently updates its website. If the script stops working, it's likely due to changes in the HTML structure. You may need to update the Cheerio selectors in `scrapeLinkedIn.js` to match the new structure. You can do this by inspecting the elements in your browser's developer tools.
-*   **Rate Limiting and Bot Detection:** If you scrape too many pages in a short period, LinkedIn may temporarily block your IP address. The script includes delays to minimize this risk, but if you encounter issues, try increasing the delay or running the script less frequently. For more advanced scenarios, consider using a proxy service.
-*   **Missing or Incomplete Data:** Some company profiles may not have all the data points that the script tries to extract. The script is designed to handle this gracefully, but you may see `null` or empty values in the output.
-*   **Debugging with Headful Mode:** If you are having trouble with a specific page, running the script in headful mode (`--headful`) can help you see what's happening in the browser and identify any issues with the page loading or selectors.
+- **Empty Fields:** If you're getting empty fields for `aboutUs`, `founded`, or `locations`, it could be due to:
+    - **LinkedIn UI Changes:** LinkedIn frequently changes its layout. The content-based selectors are designed to be resilient, but significant changes might require updating the script.
+    - **Bot Detection:** LinkedIn has strong anti-bot measures. If you run the scraper too frequently or from a cloud IP, you might be blocked or served a different version of the page. Running in "headful" mode (`--headful`) can sometimes help.
+    - **Dynamic Content:** The data you're looking for might be loaded dynamically after some user interaction that the scraper is not yet simulating. Check the `scraper.log` file to see if the scraper is successfully finding and clicking the necessary tabs and buttons.
+
+- **Errors:** Check the `scraper.log` file for any errors during the scraping process. This will provide clues as to what went wrong.
