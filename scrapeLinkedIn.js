@@ -98,10 +98,17 @@ async function scrapeLinkedInCompany(url, browser) {
     const companyData = {
       url,
       status: 'Success',
-      logoUrl: jsonData.logo || $('.ember-view.org-top-card-primary-content__logo-container img').attr('src'),
-      bannerUrl: jsonData.image ? jsonData.image.contentUrl : $('.ember-view.org-top-card-primary-content__banner-container img').attr('src'),
+      name: $('meta[property="og:title"]').attr('content') || $('h1').first().text().trim() || null,
+      logoUrl: await page.evaluate(() => {
+        const logoElement = document.querySelector('.top-card-layout__entity-image');
+        return logoElement ? logoElement.src : null;
+      }),
+      bannerUrl: await page.evaluate(() => {
+        const bannerElement = document.querySelector('.cover-img__image');
+        return bannerElement ? bannerElement.src : null;
+      }),
       aboutUs: jsonData.description || $('.org-about-us-organization-description__text-free-viewer').text().trim(),
-      website: jsonData.url || $('dt:contains("Website")').next('dd').find('a').attr('href'),
+      website: jsonData.url || $('dt:contains("Website")').next('dd').find('a').attr('href') || null,
       verified: $('.org-page-verified-badge').length > 0,
       industry: jsonData.industry || $('dt:contains("Industry")').next('dd').text().trim(),
       companySize: jsonData.numberOfEmployees ? `${jsonData.numberOfEmployees.minValue}-${jsonData.numberOfEmployees.maxValue} employees` : $('dt:contains("Company size")').next('dd').text().trim(),
